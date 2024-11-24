@@ -1,49 +1,94 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-	<title>Multiple Stopwatches</title>
-	<link href="./reset.css" type="text/css" rel="stylesheet" media="all">
-	<link href="./multiple-stopwatches_style.css" type="text/css" rel="stylesheet" media="all">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stopwatch App</title>
+    <style>
+        .stopwatch {
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+    </style>
 </head>
 <body>
-	<div id="toolbar">
-		<button id="clear-all">Clear All</button><button id="remove-all">Remove All</button><!--
-		--><button id="add-stopwatch">Add a Stopwatch</button><!--
-		--><div id="add-macro-div" class="inline-block">
-			<button id="add-macro">Add a Macro</button><!--
-			--><input id="add-macro-input" type="text" maxlength="1">
-		</div>
-	</div>
-	<div class="main">
-		<div id="sidebar">
-			<h1>List of Macro Keybinds</h1>
-			<div>
-				<div class="macro-list-item" id="macro-li-template">
-					<input type="checkbox" name="macro-keybind">
-					<label></label>
-					<br>
-				</div>
-			</div>
-			<button id="delete-macro-button">Delete selected</button>
-		</div>
-		<div id="all-stopwatches">
-			<div class="stopwatch-divider" id="template" draggable="true">
-				<div class="divider"></div>
-				<div class="stopwatch">
-					<input class="name" type="text" value="Stopwatch 1" tabindex="1">
-					<button class="remove" tabindex="-1">&#10005</button>
-					<div class="time"><button tabindex="-1">0.00</button></div>
-					<button class="clear" tabindex="-1">Clear</button>
-					<div class="keybind"><span>Keybind: </span><input type="text" maxlength="1" tabindex="2"></div>
-				</div>
-			</div>
-			<div class="stopwatch-divider" id="0">
-				<div class="divider" id="final-divider"></div>
-				<div class="stopwatch" id="final-stopwatch">
-					<div>drag here to move to end</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	<script src="./multiple-stopwatches_script.js"></script>
+    <h1>Stopwatch App</h1>
+    <button id="addStopwatch">Add Stopwatch</button>
+    <div id="stopwatchContainer"></div>
+
+    <script>
+        let stopwatches = JSON.parse(localStorage.getItem('stopwatches')) || [];
+
+        function renderStopwatches() {
+            const container = document.getElementById('stopwatchContainer');
+            container.innerHTML = '';
+            stopwatches.forEach((sw, index) => {
+                if (sw.interval) {
+                    sw.elapsedTime = Date.now() - sw.startTime;
+                } else {
+                    sw.elapsedTime = sw.elapsedTime || 0;
+                }
+                const stopwatchDiv = document.createElement('div');
+                stopwatchDiv.className = 'stopwatch';
+                stopwatchDiv.innerHTML = `
+                    <h2 id="stopwatchName${index}" contenteditable="true" onblur="renameStopwatch(${index}, this.innerText)">${sw.name}</h2>
+                    <div id="time${index}">${formatTime(sw.elapsedTime)}</div>
+                    <button onclick="startStopwatch(${index})">Start</button>
+                    <button onclick="stopStopwatch(${index})">Stop</button>
+                    <button onclick="removeStopwatch(${index})">Remove</button>
+                `;
+                container.appendChild(stopwatchDiv);
+            });
+        }
+
+        function formatTime(elapsedTime) {
+            const seconds = Math.floor((elapsedTime / 1000) % 60);
+            const minutes = Math.floor((elapsedTime / (1000 * 60)) % 60);
+            const hours = Math.floor((elapsedTime / (1000 * 60 * 60)) % 24);
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function startStopwatch(index) {
+            if (!stopwatches[index].interval) {
+                stopwatches[index].startTime = Date.now() - stopwatches[index].elapsedTime;
+                stopwatches[index].interval = setInterval(() => {
+                    stopwatches[index].elapsedTime = Date.now() - stopwatches[index].startTime;
+                    localStorage.setItem('stopwatches', JSON.stringify(stopwatches));
+                    renderStopwatches();
+                }, 1000);
+            }
+        }
+
+        function stopStopwatch(index) {
+            clearInterval(stopwatches[index].interval);
+            stopwatches[index].interval = null;
+            stopwatches[index].elapsedTime = Date.now() - stopwatches[index].startTime;
+            localStorage.setItem('stopwatches', JSON.stringify(stopwatches));
+        }
+
+        function removeStopwatch(index) {
+            stopwatches.splice(index, 1);
+            localStorage.setItem('stopwatches', JSON.stringify(stopwatches));
+            renderStopwatches();
+        }
+
+        function renameStopwatch(index, newName) {
+            stopwatches[index].name = newName || `Stopwatch ${index + 1}`;
+            localStorage.setItem('stopwatches', JSON.stringify(stopwatches));
+            document.getElementById(`stopwatchName${index}`).innerText = stopwatches[index].name;
+        }
+
+        document.getElementById('addStopwatch').addEventListener('click', () => {
+            stopwatches.push({ name: `Stopwatch ${stopwatches.length + 1}`, elapsedTime: 0 });
+            localStorage.setItem('stopwatches', JSON.stringify(stopwatches));
+            renderStopwatches();
+        });
+			        renderStopwatches();
+
+		setInterval(() => {
+			        renderStopwatches();
+		}, 1000);
+    </script>
 </body>
+</html>
